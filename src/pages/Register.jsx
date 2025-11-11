@@ -40,7 +40,7 @@ function Register() {
   };
 
   return (
-    <div className="flex h-screen justify-center items-center">
+    <div className="bg-gray-50 text-gray-600 flex rounded justify-center items-center">
       <form
         onSubmit={handleSubmit}
         className="p-8 rounded-2xl shadow-md w-96"
@@ -103,7 +103,7 @@ function Register() {
 
         <button
           type="submit"
-          className="w-full text-white p-2 rounded-lg hover:bg-white transition"
+          className="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition"
         >
           Register
         </button>
