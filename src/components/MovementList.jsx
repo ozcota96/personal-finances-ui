@@ -36,7 +36,7 @@ function MovementList({movements}) {
                                     {movement.type === 0 ? "Income" : "Expense"} 
                                 </span>
                             </td>
-                            <td className="p-2">{Moment(movement.date).format("d MMM YYYY")}</td>
+                            <td className="p-2">{Moment(movement.date).format("d MMM YYYY") /* TODO: fix date format */}</td>
                             <td className="p-2">{movement.category?.name || "-"}</td>
                             <td className="p-2">{movement.subcategory?.name || "-"}</td>
                         </tr>

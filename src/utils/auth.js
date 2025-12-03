@@ -23,4 +23,17 @@ function isAuthenticated() {
     }
 }
 
-export { isAuthenticated };
+function getUserId() {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
+    try{
+        const decoded = jwtDecode(token);
+        return decoded.sub || null;
+    } catch (error) {
+        console.log("Invalid token:", error);
+        return null;
+    }
+}
+
+export { isAuthenticated, getUserId };
