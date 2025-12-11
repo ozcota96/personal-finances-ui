@@ -10,6 +10,7 @@ function Dashboard() {
   const [accounts, setAccounts] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [accountId, setAccountId] = useState("");
+  const [accountBalance, setAccountBalance] = useState(null);
 
   const userId = getUserId();
 
@@ -28,7 +29,6 @@ function Dashboard() {
     try {
       const token = localStorage.getItem("token");
       const response = await api.get(`/users/${userId}/accounts`, {
-        //hardcoded for testing purposes
         headers: { Authorization: `Bearer ${token}` },
       });
       setAccounts(response.data);
@@ -53,7 +53,6 @@ function Dashboard() {
     try {
       const token = localStorage.getItem("token");
       const response = await api.get(`users/${userId}/categories`, {
-        //hardcoded for testing purposes
         headers: { Authorization: `Bearer ${token}` },
       });
       setCategories(response.data);
@@ -67,6 +66,17 @@ function Dashboard() {
     fetchMovements();
   };
 
+  const handleAccountChange = (e) => {
+    const id = e.target.value;
+    setAccountId(id);
+
+    const selectedAccount = accounts.find((acc) => acc.id == id);
+    if (selectedAccount) {
+      console.log(selectedAccount);
+      setAccountBalance(selectedAccount.balance);
+    }
+  };
+
   return (
     <div className="bg-gray-50 p-8">
       <div className="flex justify-between items-center gap-6 bg-white p-4 mb-6 rounded-xl shadow-md">
@@ -74,9 +84,7 @@ function Dashboard() {
           <label className="text-gray-600 text-sm mb-1">Account</label>
           <select
             value={accountId}
-            onChange={(e) => {
-              setAccountId(e.target.value);
-            }}
+            onChange={handleAccountChange}
             className="border rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select an account</option>
@@ -90,7 +98,7 @@ function Dashboard() {
 
         <div className="flex flex-col items-start bg-green-600 text-white px-5 py-3 rounded-xl shadow-md">
           <span>Balance</span>
-          <span>$0</span>
+          <span>${accountBalance?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
         </div>
 
         <div>
