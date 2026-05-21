@@ -3,12 +3,14 @@ import MovementForm from "../components/MovementForm";
 import MovementList from "../components/MovementList";
 import { getUserId } from "../utils/auth";
 import api from "../services/api";
+import AccountForm from "../components/AccountForm";
 
 function Dashboard() {
   const [movements, setMovements] = useState([]);
   const [categories, setCategories] = useState([]);
   const [accounts, setAccounts] = useState([]);
-  const [showForm, setShowForm] = useState(false);
+  const [showMovementsForm, setShowMovementsForm] = useState(false);
+  const [showAccountForm, setShowAccountForm] = useState(false);
   const [accountId, setAccountId] = useState("");
   const [accountBalance, setAccountBalance] = useState(null);
 
@@ -62,9 +64,14 @@ function Dashboard() {
   };
 
   const handleMovementAdded = () => {
-    setShowForm(false);
+    setShowMovementsForm(false);
     fetchMovements();
   };
+
+  const handleAccountAdded = () => {
+    setShowAccountForm(false);
+    fetchAccounts();
+  }
 
   const handleAccountChange = (e) => {
     const id = e.target.value;
@@ -98,12 +105,36 @@ function Dashboard() {
 
         <div className="flex flex-col items-start bg-green-600 text-white px-5 py-3 rounded-xl shadow-md">
           <span>Balance</span>
-          <span>${accountBalance?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+          <span>
+            $
+            {accountBalance?.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+            })}
+          </span>
+        </div>
+
+        {/* TODO: Move this option to the user profile */}
+        <div>
+          <button 
+            onClick={() => setShowAccountForm(true)}
+            className="bg-blue-600 hover:bg-blue-700 transition text-white px-4 py-2 rounded-lg"
+          >
+            New Account
+          </button>
+        </div>
+
+        <div>
+          {showAccountForm && (
+            <AccountForm
+              onClose={() => setShowAccountForm(false)}
+              onSuccess={handleAccountAdded}
+            />
+          )}
         </div>
 
         <div>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => setShowMovementsForm(true)}
             className="bg-blue-600 hover:bg-blue-700 transition text-white px-4 py-2 rounded-lg"
           >
             New Movement
@@ -112,9 +143,9 @@ function Dashboard() {
       </div>
 
       <div>
-        {showForm && (
+        {showMovementsForm && (
           <MovementForm
-            onClose={() => setShowForm(false)}
+            onClose={() => setShowMovementsForm(false)}
             onSuccess={handleMovementAdded}
             categories={categories}
             accounts={accounts}
