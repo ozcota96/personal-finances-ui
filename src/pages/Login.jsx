@@ -26,7 +26,7 @@ function Login() {
     };
 
     return (
-        <div className="bg-gray-50 text-gray-600 flex rounded justify-center items-center">
+        <div className="min-h-screen w-full bg-gray-50 text-gray-600 flex rounded justify-center items-center">
             <form
                 onSubmit={handleSubmit}
                 className="p-8 rounded-2xl shadow-md w-96"
