@@ -36,4 +36,9 @@ function getUserId() {
     }
 }
 
-export { isAuthenticated, getUserId };
+function logout() {
+    localStorage.removeItem("token");
+    window.location.href = "/login"; // Redirect to login page
+}
+
+export { isAuthenticated, getUserId, logout };
