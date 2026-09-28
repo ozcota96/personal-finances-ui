@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getUserId } from "../utils/auth";
 import api from "../services/api";
 import AccountForm from "../components/AccountForm";
+import CategoryForm from "../components/CategoryForm";
 
 const emptyUser = {
     firstName: "",
@@ -23,6 +24,13 @@ function Profile() {
     const [accountError, setAccountError] = useState("");
     const [showAccountForm, setShowAccountForm] = useState(false);
     const [accountToEdit, setAccountToEdit] = useState(null);
+    const [categories, setCategories] = useState([]);
+    const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
+    const [categoryError, setCategoryError] = useState("");
+    const [selectedCategoryId, setSelectedCategoryId] = useState("");
+    const [showCategoryForm, setShowCategoryForm] = useState(false);
+    const [categoryFormType, setCategoryFormType] = useState("category");
+    const [entityToEdit, setEntityToEdit] = useState(null);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -62,6 +70,29 @@ function Profile() {
         };
 
         fetchAccounts();
+    }, [activeTab]);
+
+    useEffect(() => {
+        if (activeTab !== "categories" && activeTab !== "subcategories") return;
+
+        const fetchCategories = async () => {
+            setIsCategoriesLoading(true);
+            setCategoryError("");
+            try {
+                const response = await api.get(`/users/${getUserId()}/categories`);
+                setCategories(response.data);
+                setSelectedCategoryId((currentId) => {
+                    const selectedExists = response.data.some((category) => String(category.id) === String(currentId));
+                    return selectedExists ? currentId : response.data[0]?.id?.toString() || "";
+                });
+            } catch (fetchError) {
+                setCategoryError(fetchError.response?.data?.message || "Unable to load your categories.");
+            } finally {
+                setIsCategoriesLoading(false);
+            }
+        };
+
+        fetchCategories();
     }, [activeTab]);
 
     const handleChange = (event) => {
@@ -131,6 +162,100 @@ function Profile() {
         setShowAccountForm(true);
     };
 
+    const refreshCategories = async () => {
+        try {
+            const response = await api.get(`/users/${getUserId()}/categories`);
+            setCategories(response.data);
+            setSelectedCategoryId((currentId) => {
+                const selectedExists = response.data.some((category) => String(category.id) === String(currentId));
+                return selectedExists ? currentId : response.data[0]?.id?.toString() || "";
+            });
+        } catch (fetchError) {
+            setCategoryError(fetchError.response?.data?.message || "Unable to load your categories.");
+        }
+    };
+
+    const handleCategorySaved = async () => {
+        setShowCategoryForm(false);
+        setEntityToEdit(null);
+        await refreshCategories();
+    };
+
+    const handleDeleteCategoryItem = async (item, type) => {
+        const resourceName = type === "subcategory" ? "subcategory" : "category";
+        if (!window.confirm(`Delete this ${resourceName}?`)) return;
+
+        try {
+            const resourcePath = type === "subcategory" ? "subcategories" : "categories";
+            await api.delete(`/${resourcePath}/${item.id}`);
+            if (type === "category") {
+                setCategories((currentCategories) => currentCategories.filter((category) => category.id !== item.id));
+                setSelectedCategoryId((currentId) => String(currentId) === String(item.id) ? "" : currentId);
+            } else {
+                setCategories((currentCategories) => currentCategories.map((category) => ({
+                    ...category,
+                    subcategories: category.subcategories?.filter((subcategory) => subcategory.id !== item.id),
+                })));
+            }
+        } catch (deleteError) {
+            setCategoryError(deleteError.response?.data?.message || `Unable to delete this ${resourceName}.`);
+        }
+    };
+
+    const openCategoryForm = (type, item = null) => {
+        setCategoryFormType(type);
+        setEntityToEdit(item);
+        setShowCategoryForm(true);
+    };
+
+    const selectedCategory = categories.find((category) => String(category.id) === String(selectedCategoryId));
+
+    const renderEntityCards = (items, type) => items?.length ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+            {items.map((item) => (
+                <article key={item.id} className="rounded-xl border border-gray-200 p-5 shadow-sm transition hover:shadow-md">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                            <h3 className="font-semibold text-gray-900">{item.name}</h3>
+                            <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-600">
+                                {item.description || "No description"}
+                            </p>
+                        </div>
+                        <div className="flex shrink-0 gap-1">
+                            <button
+                                type="button"
+                                aria-label={`Edit ${item.name}`}
+                                title={`Edit ${type}`}
+                                onClick={() => openCategoryForm(type, item)}
+                                className="rounded-md p-2 text-gray-500 transition hover:bg-blue-50 hover:text-blue-600"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5" aria-hidden="true">
+                                    <path d="M12 20h9" strokeLinecap="round" />
+                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                            <button
+                                type="button"
+                                aria-label={`Delete ${item.name}`}
+                                title={`Delete ${type}`}
+                                onClick={() => handleDeleteCategoryItem(item, type)}
+                                className="rounded-md p-2 text-gray-500 transition hover:bg-red-50 hover:text-red-600"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5" aria-hidden="true">
+                                    <path d="M3 6h18M8 6V4h8v2m-9 0 1 15h8l1-15M10 10v7m4-7v7" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </article>
+            ))}
+        </div>
+    ) : (
+        <p className="rounded-xl border border-dashed border-gray-300 px-4 py-10 text-center text-gray-500">
+            No {type === "subcategory" ? "subcategories" : "categories"} yet.
+        </p>
+    );
+
     return (
         <main className="min-h-[calc(100vh-4rem)] bg-gray-50 px-4 py-10 sm:px-6 lg:px-8">
             <section className="mx-auto max-w-4xl rounded-2xl bg-white p-6 shadow-md sm:p-8">
@@ -142,7 +267,7 @@ function Profile() {
                     <p className="mt-2 text-gray-500">Review and manage your personal information.</p>
                 </div>
 
-                <div className="mb-8 flex gap-6 border-b border-gray-200" role="tablist" aria-label="Profile sections">
+                <div className="mb-8 flex gap-6 overflow-x-auto border-b border-gray-200" role="tablist" aria-label="Profile sections">
                     <button
                         type="button"
                         role="tab"
@@ -160,6 +285,24 @@ function Profile() {
                         className={`border-b-2 pb-3 text-sm font-semibold transition ${activeTab === "accounts" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-800"}`}
                     >
                         Bank accounts
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeTab === "categories"}
+                        onClick={() => setActiveTab("categories")}
+                        className={`shrink-0 border-b-2 pb-3 text-sm font-semibold transition ${activeTab === "categories" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-800"}`}
+                    >
+                        Categories
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeTab === "subcategories"}
+                        onClick={() => setActiveTab("subcategories")}
+                        className={`shrink-0 border-b-2 pb-3 text-sm font-semibold transition ${activeTab === "subcategories" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-800"}`}
+                    >
+                        Subcategories
                     </button>
                 </div>
 
@@ -237,7 +380,7 @@ function Profile() {
                             </button>
                         </div>
                     </form>
-                ) : (
+                ) : activeTab === "accounts" ? (
                     <div role="tabpanel" aria-label="Bank accounts">
                         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
@@ -315,6 +458,56 @@ function Profile() {
                             </div>
                         )}
                     </div>
+                ) : activeTab === "categories" ? (
+                    <div role="tabpanel" aria-label="Categories">
+                        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 className="text-xl font-semibold text-gray-900">Categories</h2>
+                                <p className="mt-1 text-sm text-gray-500">Organize your spending and income.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => openCategoryForm("category")}
+                                className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
+                            >
+                                + New category
+                            </button>
+                        </div>
+                        {categoryError && <div className="mb-6 rounded-lg bg-red-50 p-3 text-sm text-red-600" role="alert">{categoryError}</div>}
+                        {isCategoriesLoading ? <p className="py-8 text-center text-gray-500">Loading categories...</p> : renderEntityCards(categories, "category")}
+                    </div>
+                ) : (
+                    <div role="tabpanel" aria-label="Subcategories">
+                        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                            <div className="w-full sm:max-w-sm">
+                                <h2 className="mb-3 text-xl font-semibold text-gray-900">Subcategories</h2>
+                                <label htmlFor="subcategory-category" className="mb-1.5 block text-sm font-medium text-gray-700">Category</label>
+                                <select
+                                    id="subcategory-category"
+                                    value={selectedCategoryId}
+                                    onChange={(event) => setSelectedCategoryId(event.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                >
+                                    <option value="">Select a category</option>
+                                    {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                                </select>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => openCategoryForm("subcategory")}
+                                disabled={!selectedCategory}
+                                className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                            >
+                                + New subcategory
+                            </button>
+                        </div>
+                        {categoryError && <div className="mb-6 rounded-lg bg-red-50 p-3 text-sm text-red-600" role="alert">{categoryError}</div>}
+                        {isCategoriesLoading ? (
+                            <p className="py-8 text-center text-gray-500">Loading categories...</p>
+                        ) : !selectedCategory ? (
+                            <p className="rounded-xl border border-dashed border-gray-300 px-4 py-10 text-center text-gray-500">Select a category to view its subcategories.</p>
+                        ) : renderEntityCards(selectedCategory.subcategories, "subcategory")}
+                    </div>
                 )}
             </section>
             {showAccountForm && (
@@ -325,6 +518,18 @@ function Profile() {
                         setAccountToEdit(null);
                     }}
                     onSuccess={handleAccountSaved}
+                />
+            )}
+            {showCategoryForm && (
+                <CategoryForm
+                    type={categoryFormType}
+                    item={entityToEdit}
+                    category={categoryFormType === "subcategory" ? selectedCategory : null}
+                    onClose={() => {
+                        setShowCategoryForm(false);
+                        setEntityToEdit(null);
+                    }}
+                    onSuccess={handleCategorySaved}
                 />
             )}
         </main>
