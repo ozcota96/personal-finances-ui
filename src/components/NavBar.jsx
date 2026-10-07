@@ -66,9 +66,9 @@ function NavBar() {
               <div className="hidden sm:ml-6 sm:block">
                 <div className="flex space-x-4">
                   <a
-                    href="#"
+                    href="/"
                     aria-current="page"
-                    className="rounded-md bg-gray-950/50 px-3 py-2 text-sm font-medium text-white"
+                    className="rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white"
                   >
                     Dashboard
                   </a>
@@ -90,7 +90,7 @@ function NavBar() {
             <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
               <a
                 type="button"
-                className="relative rounded-full p-1 text-gray-400 hover:text-white focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500"
+                className="relative rounded-full p-1 text-gray-300 hover:text-white focus:outline-2 focus:outline-offset-2 focus:outline-indigo-500"
               >
                 <span className="absolute -inset-1.5"></span>
                 <span className="sr-only">View notifications</span>
@@ -134,7 +134,7 @@ function NavBar() {
                     className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-gray-800 py-1 outline -outline-offset-1 outline-white/10"
                   >
                     <a
-                      href="#"
+                      href="/user/profile"
                       role="menuitem"
                       className="block px-4 py-2 text-sm text-gray-300 focus:bg-white/5 focus:outline-hidden hover:text-white"
                     >

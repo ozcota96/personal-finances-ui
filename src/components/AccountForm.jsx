@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import api from "../services/api";
 
-function AccountForm({ onClose, onSuccess }) {
-  const [accountName, setAccountName] = useState("");
-  const [initialBalance, setInitialBalance] = useState("");
+function AccountForm({ account, onClose, onSuccess }) {
+  const [accountName, setAccountName] = useState(account?.name || "");
+  const [balance, setbalance] = useState(account?.balance ?? "");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
@@ -11,16 +11,20 @@ function AccountForm({ onClose, onSuccess }) {
     setError("");
     try {
       const token = localStorage.getItem("token");
-      await api.post(
-        "accounts",
-        {
-            name: accountName,
-            initialBalance: parseFloat(initialBalance) || 0,
-        },
-        { 
-            headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      const accountData = {
+        name: accountName,
+        balance: parseFloat(balance) || 0,
+      };
+
+      if (account) {
+        await api.put(`/accounts/${account.id}`, accountData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } else {
+        await api.post("accounts", accountData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
       onSuccess();
     } catch (error) {
       if (error.response?.data?.message) setError(error.response.data.message);
@@ -29,23 +33,29 @@ function AccountForm({ onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed justify-center-items-center">
-      <div className="bg-gray-50 text-gray-600 rounded-lg p-6 shadow-lg w-96">
-        <h2 className="text-xl font-semibold mb-4">New Account</h2>
+    <div className="fixed inset-0 z-20 flex items-center justify-center bg-gray-900/40 p-4">
+      <div className="w-full max-w-md rounded-lg bg-gray-50 p-6 text-gray-600 shadow-lg">
+        <h2 className="mb-4 text-xl font-semibold">
+          {account ? "Edit Account" : "New Account"}
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <label htmlFor="accountName" className="block text-sm font-medium">
+            Account Name
+          </label>
           <input
             type="text"
-            placeholder="Account Name"
             value={accountName}
             onChange={(e) => setAccountName(e.target.value)}
             className="w-full border rounded-lg px-3 py-2"
             required
           />
+          <label htmlFor="balance" className="block text-sm font-medium">
+            Balance
+          </label>
           <input
             type="text"
-            placeholder="Initial Balance"
-            value={initialBalance}
-            onChange={(e) => setInitialBalance(e.target.value)}
+            value={balance}
+            onChange={(e) => setbalance(e.target.value)}
             className="w-full border rounded-lg px-3 py-2"
           />
 

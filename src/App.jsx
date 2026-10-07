@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import NavBar from "./components/NavBar";
+import Profile from "./pages/Profile";
 import "./App.css";
 
 function App() {
@@ -34,6 +35,15 @@ function App() {
             <PublicRoute>
               <Register />
             </PublicRoute>
+          }
+        />
+        <Route
+          path="/user/profile"
+          element={
+            <ProtectedRoute>
+              <NavBar />
+              <Profile />
+            </ProtectedRoute>
           }
         />
       </Routes>
