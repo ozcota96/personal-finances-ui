@@ -1,142 +1,210 @@
 import { useState } from "react";
 import api from "../services/api";
 
-function MovementForm({ onClose, onSuccess, categories, accounts }) {
+function MovementForm({ onClose, onSuccess, categories = [], accounts = [] }) {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [accountId, setAccountId] = useState("");
-  const [type, setType] = useState(1); // 0 for income, 1 for expense
+  const [type, setType] = useState(1);
   const [date, setDate] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [subcategoryId, setSubcategoryId] = useState();
+  const [subcategoryId, setSubcategoryId] = useState("");
   const [error, setError] = useState("");
 
-  const selectedCategory = categories.find((c) => c.id === categoryId);
+  const selectedCategory = categories.find(
+    (category) => String(category.id) === String(categoryId),
+  );
+  const subcategoryOptions = selectedCategory?.subcategories ?? [];
+
+  const handleCategoryChange = (event) => {
+    const nextCategoryId = event.target.value;
+    setCategoryId(nextCategoryId ? Number(nextCategoryId) : "");
+    setSubcategoryId("");
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
     try {
-      const token = localStorage.getItem("token");
-      await api.post(
-        "/movements",
-        {
-          amount: parseFloat(amount),
-          description,
-          accountId,
-          type,
-          categoryId,
-          subcategoryId,
-          date,
-        },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await api.post("/movements", {
+        amount: parseFloat(amount),
+        description,
+        accountId: Number(accountId),
+        type: Number(type),
+        categoryId: Number(categoryId),
+        subcategoryId: subcategoryId ? Number(subcategoryId) : null,
+        date,
+      });
       onSuccess();
     } catch (error) {
-      if (error.response?.data?.message) setError(error.response.data.message);
-      else setError("An unexpected error occurred.");
+      if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else {
+        setError("An unexpected error occurred.");
+      }
     }
   };
 
   return (
-    <div className="fixed justify-center-items-center">
-      <div className="bg-gray-50 text-gray-600 rounded-lg p-6 shadow-lg w-96">
-        <h2 className="text-xl font-semibold mb-4">New Movement</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Amount"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-            required
-          />
-          <input
-            type="text"
-            placeholder="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-            required
-          />
-          <select
-            value={accountId}
-            onChange={(e) => setAccountId(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-          >
-            <option value="">Select an account</option>
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-          >
-            <option value="0">Income</option>
-            <option value="1">Expense</option>
-          </select>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-            required
-          />
-          <select
-            value={categoryId}
-            onChange={(e) => {
-              setCategoryId(e.target.value);
-              setSubcategoryId();
-            }}
-            className="w-full border rounded-lg px-3 py-2"
-            required
-          >
-            <option value="">Select a category</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={subcategoryId}
-            onChange={(e) => setSubcategoryId(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-            disabled={
-              !selectedCategory || !selectedCategory.subcategories?.length
-            }
-          >
-            <option value="">Select a subcategory</option>
-            {selectedCategory?.subcategories.map((subcategory) => (
-              <option key={subcategory.id} value={subcategory.id}>
-                {subcategory.name}
-              </option>
-            ))}
-          </select>
-
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-
-          <div className="flex justify-end space-x-2">
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 transition text-white px-4 py-2 rounded-lg"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="bg-gray-200 hover:bg-gray-300 transition px-4 py-2 rounded-lg"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+    <div
+      className="rounded-2xl bg-white p-5 shadow-2xl ring-1 ring-slate-200 sm:p-6"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.12em] text-blue-600">
+            Movement
+          </p>
+          <h2 className="mt-1 text-xl font-semibold text-slate-900">New Movement</h2>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Close movement form"
+        >
+          ✕
+        </button>
       </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-slate-700">Amount</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              placeholder="0.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              required
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-slate-700">Description</label>
+            <input
+              type="text"
+              placeholder="Groceries, rent, salary..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Account</label>
+            <select
+              value={accountId}
+              onChange={(e) => setAccountId(Number(e.target.value))}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              required
+            >
+              <option value="">Select an account</option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <fieldset>
+            <legend className="mb-1 block text-sm font-medium text-slate-700">Type</legend>
+            <div className="flex gap-4 rounded-lg border border-slate-300 px-3 py-2.5">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="radio"
+                  name="movementType"
+                  value={0}
+                  checked={type === 0}
+                  onChange={() => setType(0)}
+                  className="size-4 accent-emerald-600"
+                />
+                Income
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="radio"
+                  name="movementType"
+                  value={1}
+                  checked={type === 1}
+                  onChange={() => setType(1)}
+                  className="size-4 accent-rose-600"
+                />
+                Expense
+              </label>
+            </div>
+          </fieldset>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Date</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Category</label>
+            <select
+              value={categoryId}
+              onChange={handleCategoryChange}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              required
+            >
+              <option value="">Select a category</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-sm font-medium text-slate-700">Subcategory</label>
+            <select
+              value={subcategoryId}
+              onChange={(e) => setSubcategoryId(e.target.value ? Number(e.target.value) : "")}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-slate-100"
+              disabled={!selectedCategory || !subcategoryOptions.length}
+            >
+              <option value="">{subcategoryOptions.length ? "Select a subcategory" : "No subcategories available"}</option>
+              {subcategoryOptions.map((subcategory) => (
+                <option key={subcategory.id} value={subcategory.id}>
+                  {subcategory.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+
+        <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 font-medium text-slate-700 transition hover:bg-slate-100"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white transition hover:bg-blue-700"
+          >
+            Save movement
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
