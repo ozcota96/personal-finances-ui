@@ -1,15 +1,77 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import api from "../services/api";
 
-function MovementForm({ onClose, onSuccess, categories = [], accounts = [] }) {
-  const [amount, setAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const [accountId, setAccountId] = useState("");
-  const [type, setType] = useState(1);
-  const [date, setDate] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [subcategoryId, setSubcategoryId] = useState("");
+function getMovementAccountId(movement, accounts) {
+  const accountName =
+    typeof movement?.account === "string"
+      ? movement.account
+      : movement?.account?.name ?? movement?.accountName;
+
+  return (
+    movement?.accountId ??
+    movement?.account?.id ??
+    accounts.find((account) => account.name === accountName)?.id ??
+    ""
+  );
+}
+
+function getMovementCategoryId(movement, categories) {
+  const category = movement?.category;
+  const categoryName =
+    typeof category === "string" ? category : category?.name ?? movement?.categoryName;
+
+  return (
+    movement?.categoryId ??
+    category?.id ??
+    categories.find((item) => item.name === categoryName)?.id ??
+    ""
+  );
+}
+
+function getMovementSubcategoryId(movement, categories) {
+  const subcategory = movement?.subcategory;
+  const subcategoryName =
+    typeof subcategory === "string"
+      ? subcategory
+      : subcategory?.name ?? movement?.subcategoryName;
+  const categoryId = getMovementCategoryId(movement, categories);
+  const category = categories.find(
+    (item) => String(item.id) === String(categoryId),
+  );
+
+  return (
+    movement?.subcategoryId ??
+    subcategory?.id ??
+    category?.subcategories?.find(
+      (item) => item.name === subcategoryName,
+    )?.id ??
+    ""
+  );
+}
+
+function MovementForm({ movement, onClose, onSuccess, categories = [], accounts = [] }) {
+  const [amount, setAmount] = useState(movement?.amount ?? "");
+  const [description, setDescription] = useState(movement?.description ?? "");
+  const [accountId, setAccountId] = useState(
+    movement?.accountId ?? movement?.account?.id ?? "",
+  );
+  const [type, setType] = useState(Number(movement?.type ?? 1));
+  const [date, setDate] = useState(movement?.date?.slice(0, 10) ?? "");
+  const [categoryId, setCategoryId] = useState(
+    getMovementCategoryId(movement, categories),
+  );
+  const [subcategoryId, setSubcategoryId] = useState(
+    getMovementSubcategoryId(movement, categories),
+  );
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!movement) return;
+
+    setAccountId((currentId) => currentId || getMovementAccountId(movement, accounts));
+    setCategoryId((currentId) => currentId || getMovementCategoryId(movement, categories));
+    setSubcategoryId((currentId) => currentId || getMovementSubcategoryId(movement, categories));
+  }, [movement, accounts, categories]);
 
   const selectedCategory = categories.find(
     (category) => String(category.id) === String(categoryId),
@@ -27,7 +89,7 @@ function MovementForm({ onClose, onSuccess, categories = [], accounts = [] }) {
     setError("");
 
     try {
-      await api.post("/movements", {
+      const movementData = {
         amount: parseFloat(amount),
         description,
         accountId: Number(accountId),
@@ -35,13 +97,19 @@ function MovementForm({ onClose, onSuccess, categories = [], accounts = [] }) {
         categoryId: Number(categoryId),
         subcategoryId: subcategoryId ? Number(subcategoryId) : null,
         date,
-      });
+      };
+
+      if (movement) {
+        await api.put(`/movements/${movement.id}`, movementData);
+      } else {
+        await api.post("/movements", movementData);
+      }
       onSuccess();
     } catch (error) {
       if (error.response?.data?.message) {
         setError(error.response.data.message);
       } else {
-        setError("An unexpected error occurred.");
+        setError("Unable to save this movement.");
       }
     }
   };
@@ -56,7 +124,9 @@ function MovementForm({ onClose, onSuccess, categories = [], accounts = [] }) {
           <p className="text-sm font-semibold uppercase tracking-[0.12em] text-blue-600">
             Movement
           </p>
-          <h2 className="mt-1 text-xl font-semibold text-slate-900">New Movement</h2>
+          <h2 className="mt-1 text-xl font-semibold text-slate-900">
+            {movement ? "Edit Movement" : "New Movement"}
+          </h2>
         </div>
         <button
           type="button"
@@ -201,7 +271,7 @@ function MovementForm({ onClose, onSuccess, categories = [], accounts = [] }) {
             type="submit"
             className="rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white transition hover:bg-blue-700"
           >
-            Save movement
+            {movement ? "Save changes" : "Save movement"}
           </button>
         </div>
       </form>

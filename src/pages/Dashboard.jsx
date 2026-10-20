@@ -8,7 +8,9 @@ function Dashboard() {
   const [movements, setMovements] = useState([]);
   const [categories, setCategories] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [movementToEdit, setMovementToEdit] = useState(null);
   const [showMovementsForm, setShowMovementsForm] = useState(false);
+  const [error, setError] = useState("");
 
   const userId = getUserId();
 
@@ -31,8 +33,8 @@ function Dashboard() {
     try {
       const response = await api.get("/movements/dashboard");
       setMovements(Array.isArray(response.data) ? response.data : []);
-    } catch (error) {
-      console.error("Error fetching movements:", error);
+    } catch (fetchError) {
+      setError(fetchError.response?.data?.message || "Unable to load movements.");
     }
   };
 
@@ -45,17 +47,47 @@ function Dashboard() {
     }
   };
 
-  const handleMovementAdded = () => {
+  const handleMovementSaved = async () => {
     setShowMovementsForm(false);
-    fetchMovements();
+    setMovementToEdit(null);
+    setError("");
+    await fetchMovements();
+  };
+
+  const handleNewMovement = () => {
+    setMovementToEdit(null);
+    setError("");
+    setShowMovementsForm(true);
+  };
+
+  const handleMovementFormClose = () => {
+    setShowMovementsForm(false);
+    setMovementToEdit(null);
   };
 
   const handleMovementEdit = (movement) => {
-    console.info("Edit movement is not implemented in the backend yet.", movement);
+    setError("");
+    setMovementToEdit(movement);
+    setShowMovementsForm(true);
   };
 
-  const handleMovementRemove = (movement) => {
-    console.info("Remove movement is not implemented in the backend yet.", movement);
+  const handleMovementRemove = async (movement) => {
+    if (!window.confirm("Delete this movement?")) return;
+
+    setError("");
+    try {
+      await api.delete(`/movements/${movement.id}`);
+      setMovements((currentMovements) =>
+        currentMovements.filter(
+          (currentMovement) => currentMovement.id !== movement.id,
+        ),
+      );
+    } catch (deleteError) {
+      setError(
+        deleteError.response?.data?.message ||
+          "Unable to delete this movement.",
+      );
+    }
   };
 
   return (
@@ -66,23 +98,35 @@ function Dashboard() {
             <p className="text-sm font-semibold uppercase tracking-[0.12em] text-blue-600">
               Dashboard
             </p>
-            <h1 className="mt-1 text-2xl font-bold text-slate-900">All movements</h1>
+            <h1 className="mt-1 text-2xl font-bold text-slate-900">
+              All movements
+            </h1>
           </div>
 
           <button
-            onClick={() => setShowMovementsForm(true)}
+            onClick={handleNewMovement}
             className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             New Movement
           </button>
         </div>
 
+        {error && (
+          <div
+            className="mb-6 rounded-lg bg-red-50 p-3 text-sm text-red-600"
+            role="alert"
+          >
+            {error}
+          </div>
+        )}
+
         {showMovementsForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 p-4 backdrop-blur-sm">
             <div className="w-full max-w-xl">
               <MovementForm
-                onClose={() => setShowMovementsForm(false)}
-                onSuccess={handleMovementAdded}
+                movement={movementToEdit}
+                onClose={handleMovementFormClose}
+                onSuccess={handleMovementSaved}
                 categories={categories}
                 accounts={accounts}
               />

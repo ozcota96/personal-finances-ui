@@ -8,7 +8,9 @@ function MovementList({ movements = [], onEdit, onRemove }) {
     currency: "USD",
   });
 
-  const handleEdit = onEdit || (() => {});
+  const handleEdit = onEdit || (() => {
+    
+  });
   const handleRemove = onRemove || (() => {});
 
   if (movements.length === 0) {
@@ -38,8 +40,8 @@ function MovementList({ movements = [], onEdit, onRemove }) {
             {movements.map((movement) => (
               <tr key={movement.id} className="border-t border-slate-200 hover:bg-slate-50">
                 <td className="px-4 py-3 font-medium text-slate-800">{movement.description}</td>
-                <td className={`px-4 py-3 font-semibold ${movement.type === 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                  {movement.type === 0 ? "+" : "-"}
+                <td className={`px-4 py-3 font-semibold ${movement.movementType === 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                  {movement.movementType === 0 ? "+" : "-"}
                   {currencyFormatter.format(movement.amount)}
                 </td>
                 {/* <td className="px-4 py-3">
@@ -113,8 +115,8 @@ function MovementList({ movements = [], onEdit, onRemove }) {
                 <p className="text-xs uppercase tracking-wide text-slate-500">Category</p>
                 <p className="text-sm font-medium text-slate-700">{movement.category || "-"}</p>
               </div>
-              <p className={`text-lg font-bold ${movement.type === 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                {movement.type === 0 ? "+" : "-"}
+              <p className={`text-lg font-bold ${movement.movementType === 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                {movement.movementType === 0 ? "+" : "-"}
                 {currencyFormatter.format(movement.amount)}
               </p>
             </div>
