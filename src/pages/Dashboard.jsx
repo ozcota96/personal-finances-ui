@@ -3,36 +3,26 @@ import MovementForm from "../components/MovementForm";
 import MovementList from "../components/MovementList";
 import { getUserId } from "../utils/auth";
 import api from "../services/api";
-import AccountForm from "../components/AccountForm";
 
 function Dashboard() {
   const [movements, setMovements] = useState([]);
   const [categories, setCategories] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [movementToEdit, setMovementToEdit] = useState(null);
   const [showMovementsForm, setShowMovementsForm] = useState(false);
-  const [showAccountForm, setShowAccountForm] = useState(false);
-  const [accountId, setAccountId] = useState("");
-  const [accountBalance, setAccountBalance] = useState(null);
+  const [error, setError] = useState("");
 
   const userId = getUserId();
 
   useEffect(() => {
     fetchCategories();
     fetchAccounts();
+    fetchMovements();
   }, []);
-
-  useEffect(() => {
-    if (accountId) {
-      fetchMovements();
-    }
-  }, [accountId]);
 
   const fetchAccounts = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await api.get(`/users/${userId}/accounts`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get(`/users/${userId}/accounts`);
       setAccounts(response.data);
     } catch (error) {
       console.error("Error fetching accounts:", error);
@@ -41,112 +31,114 @@ function Dashboard() {
 
   const fetchMovements = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await api.get(`/accounts/${accountId}/movements`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setMovements(response.data);
-    } catch (error) {
-      console.error("Error fetching movements:", error);
+      const response = await api.get("/movements/dashboard");
+      setMovements(Array.isArray(response.data) ? response.data : []);
+    } catch (fetchError) {
+      setError(fetchError.response?.data?.message || "Unable to load movements.");
     }
   };
 
   const fetchCategories = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await api.get(`users/${userId}/categories`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get(`users/${userId}/categories`);
       setCategories(response.data);
     } catch (error) {
       console.error("Error fetching categories:", error);
     }
   };
 
-  const handleMovementAdded = () => {
+  const handleMovementSaved = async () => {
     setShowMovementsForm(false);
-    fetchMovements();
+    setMovementToEdit(null);
+    setError("");
+    await fetchMovements();
   };
 
-  const handleAccountAdded = () => {
-    setShowAccountForm(false);
-    fetchAccounts();
-  }
+  const handleNewMovement = () => {
+    setMovementToEdit(null);
+    setError("");
+    setShowMovementsForm(true);
+  };
 
-  const handleAccountChange = (e) => {
-    const id = e.target.value;
-    setAccountId(id);
+  const handleMovementFormClose = () => {
+    setShowMovementsForm(false);
+    setMovementToEdit(null);
+  };
 
-    const selectedAccount = accounts.find((acc) => acc.id == id);
-    if (selectedAccount) {
-      setAccountBalance(selectedAccount.balance);
+  const handleMovementEdit = (movement) => {
+    setError("");
+    setMovementToEdit(movement);
+    setShowMovementsForm(true);
+  };
+
+  const handleMovementRemove = async (movement) => {
+    if (!window.confirm("Delete this movement?")) return;
+
+    setError("");
+    try {
+      await api.delete(`/movements/${movement.id}`);
+      setMovements((currentMovements) =>
+        currentMovements.filter(
+          (currentMovement) => currentMovement.id !== movement.id,
+        ),
+      );
+    } catch (deleteError) {
+      setError(
+        deleteError.response?.data?.message ||
+          "Unable to delete this movement.",
+      );
     }
   };
 
   return (
-    <div className="bg-gray-50 p-8">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6 bg-white p-4 mb-6 rounded-xl shadow-md">
-        <div className="flex flex-col order-1">
-          <label className="text-gray-600 text-sm mb-1">Account</label>
-          <select
-            value={accountId}
-            onChange={handleAccountChange}
-            className="border rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select an account</option>
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
-          </select>
-        </div>
+    <div className="min-h-screen bg-slate-100 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.12em] text-blue-600">
+              Dashboard
+            </p>
+            <h1 className="mt-1 text-2xl font-bold text-slate-900">
+              All movements
+            </h1>
+          </div>
 
-        <div className="flex flex-col items-start bg-green-600 text-white px-5 py-3 rounded-xl shadow-md order-2">
-          <span>Balance</span>
-          <span>
-            $
-            {accountBalance?.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-            })}
-          </span>
-        </div>
-
-        {/* TODO: Move this option to the user profile */}
-        <div className="flex gap-2 w-full md:w-auto order-3">
-          <button 
-            onClick={() => setShowAccountForm(true)}
-            className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 transition text-white px-4 py-2 rounded-lg"
-          >
-            New Account
-          </button>
           <button
-            onClick={() => setShowMovementsForm(true)}
-            className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 transition text-white px-4 py-2 rounded-lg"
+            onClick={handleNewMovement}
+            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             New Movement
           </button>
         </div>
 
-        {showAccountForm && (
-          <AccountForm
-            onClose={() => setShowAccountForm(false)}
-            onSuccess={handleAccountAdded}
-          />
+        {error && (
+          <div
+            className="mb-6 rounded-lg bg-red-50 p-3 text-sm text-red-600"
+            role="alert"
+          >
+            {error}
+          </div>
         )}
-      </div>
 
-      <div>
         {showMovementsForm && (
-          <MovementForm
-            onClose={() => setShowMovementsForm(false)}
-            onSuccess={handleMovementAdded}
-            categories={categories}
-            accounts={accounts}
-          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-xl">
+              <MovementForm
+                movement={movementToEdit}
+                onClose={handleMovementFormClose}
+                onSuccess={handleMovementSaved}
+                categories={categories}
+                accounts={accounts}
+              />
+            </div>
+          </div>
         )}
 
-        <MovementList movements={movements} />
+        <MovementList
+          movements={movements}
+          onEdit={handleMovementEdit}
+          onRemove={handleMovementRemove}
+        />
       </div>
     </div>
   );
