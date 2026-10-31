@@ -3,7 +3,7 @@ import api from "../services/api";
 
 function AccountForm({ account, onClose, onSuccess }) {
   const [accountName, setAccountName] = useState(account?.name || "");
-  const [balance, setbalance] = useState(account?.balance ?? "");
+  const [balance, setbalance] = useState(account?.balance ?? 0);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
@@ -53,10 +53,12 @@ function AccountForm({ account, onClose, onSuccess }) {
             Balance
           </label>
           <input
-            type="text"
+            type="number"
+            step="0.01"
             value={balance}
             onChange={(e) => setbalance(e.target.value)}
             className="w-full border rounded-lg px-3 py-2"
+            required
           />
 
           {error && <p className="text-red-600 text-sm">{error}</p>}

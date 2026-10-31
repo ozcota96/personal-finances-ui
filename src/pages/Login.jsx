@@ -15,6 +15,9 @@ function Login() {
         try {
             const response = await api.post("/users/login", { email, password });
             localStorage.setItem("token", response.data.token);
+            localStorage.setItem("firstName", response.data.user.firstName);
+            localStorage.setItem("lastName", response.data.user.lastName);
+            localStorage.setItem("email", response.data.user.email);
             navigate("/");
         } catch (error) {
             if (error.response && error.response.data && error.response.data.message) {

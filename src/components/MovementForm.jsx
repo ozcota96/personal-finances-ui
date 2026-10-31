@@ -49,11 +49,18 @@ function getMovementSubcategoryId(movement, categories) {
   );
 }
 
-function MovementForm({ movement, onClose, onSuccess, categories = [], accounts = [] }) {
+function MovementForm({
+  movement,
+  initialAccountId = "",
+  onClose,
+  onSuccess,
+  categories = [],
+  accounts = [],
+}) {
   const [amount, setAmount] = useState(movement?.amount ?? "");
   const [description, setDescription] = useState(movement?.description ?? "");
   const [accountId, setAccountId] = useState(
-    movement?.accountId ?? movement?.account?.id ?? "",
+    movement?.accountId ?? movement?.account?.id ?? initialAccountId,
   );
   const [type, setType] = useState(Number(movement?.type ?? 1));
   const [date, setDate] = useState(movement?.date?.slice(0, 10) ?? "");
